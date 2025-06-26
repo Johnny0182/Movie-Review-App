@@ -1,9 +1,21 @@
+import { icons } from '@/constants/icons';
 import { Link } from 'expo-router';
 import React from 'react';
-import { Image, TouchableOpacity } from 'react-native';
+import { Image, Text, TouchableOpacity, View } from 'react-native';
 
-const MovieCard = ({ id, poster_path, title, vote_average, release_date}: Movie) => {
+const MovieCard = ({ id, poster_path, title, vote_average, release_date, original_language }: Movie) => {
     console.log(poster_path);
+    // Add the formatDate function
+    const formatDate = (dateString: string) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
   return (
     <Link
       href={`/movies/${id}`} asChild>
@@ -17,6 +29,20 @@ const MovieCard = ({ id, poster_path, title, vote_average, release_date}: Movie)
                 className="w-full h-40 rounded-lg h-52"
                 resizeMode="cover"
             />
+            <Text className="text-sm font-bold text-white mt-2" numberOfLines={1}>{title}</Text>
+
+            <View className="flex-row items-center justify-start gap-x-1">
+                <Image source={icons.star} className="SIZE-4" 
+    />
+            <Text className="text-xs text-white font-bold uppercase">{Math.round(vote_average / 2)}</Text>
+            </View>
+            
+            <View className="flex-row items-center justify-between">
+                    <Text className="text-xs text-light-300 font-medium mt-1">
+                        {formatDate(release_date)} {original_language && `(${original_language.toUpperCase()})`}
+                    </Text>
+            </View>
+
         </TouchableOpacity>
     </Link>
   )
