@@ -7,7 +7,7 @@ const MovieCard = ({ id, poster_path, title, vote_average, release_date, origina
     console.log(poster_path);
     // Add the formatDate function
     const formatDate = (dateString: string) => {
-        if (!dateString) return '';
+        if (!dateString) return ''
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -15,7 +15,7 @@ const MovieCard = ({ id, poster_path, title, vote_average, release_date, origina
             day: 'numeric'
         });
     };
-
+// Change movie card format
   return (
     <Link
       href={`/movies/${id}`} asChild>
@@ -26,7 +26,7 @@ const MovieCard = ({ id, poster_path, title, vote_average, release_date, origina
                         ? `https://image.tmdb.org/t/p/w500${poster_path}`
                         : 'https://via.placeholder.com/600x400/1a1a1a/ffffff.png'
                 }}
-                className="w-full h-40 rounded-lg h-52"
+                className="w-full h-48 rounded-lg"
                 resizeMode="cover"
             />
             <Text className="text-sm font-bold text-white mt-2" numberOfLines={1}>{title}</Text>
