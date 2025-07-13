@@ -25,21 +25,25 @@ const Search = () => {
     false
   );
 
+  // Load movies when search query changes
   useEffect(() => {
-    updateSearchCount(searchQuery, movies);
-
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim()) {
         await loadMovies();
-        if (movies?.length > 0 && movies?.[0])
-          await updateSearchCount(searchQuery, movies[0]);
       } else {
         reset();
       }
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
+
+  // Update search count ONLY when movies are loaded and we have results
+  useEffect(() => {
+    if (movies?.length > 0 && searchQuery.trim()) {
+      updateSearchCount(searchQuery, movies[0]);
+    }
+  }, [movies, searchQuery]);
 
   // Debug logs
   console.log('Search Query:', searchQuery);
