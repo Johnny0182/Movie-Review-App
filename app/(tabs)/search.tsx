@@ -25,7 +25,7 @@ const Search = () => {
     false
   );
 
-  // Load movies when search query changes
+  // Load movies when search query changes (300ms debounce for fast UI)
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim()) {
@@ -38,18 +38,32 @@ const Search = () => {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  // Update search count ONLY when movies are loaded and we have results
+  // Update search count with LONGER debounce to prevent partial searches
   useEffect(() => {
-    if (movies?.length > 0 && searchQuery.trim()) {
-      updateSearchCount(searchQuery, movies[0]);
-    }
-  }, [movies, searchQuery]);
+    const trackingTimeoutId = setTimeout(() => {
+      if (movies?.length > 0 && searchQuery.trim()) {
+        // Only track after user has stopped typing for 1 second
+        updateSearchCount(searchQuery, {
+          id: 0,
+          title: '',
+          poster_path: '',
+          vote_average: 0,
+          release_date: '',
+          original_language: '',
+          adult: false,
+          backdrop_path: '',
+          genre_ids: [],
+          original_title: '',
+          overview: '',
+          popularity: 0,
+          video: false,
+          vote_count: 0
+        });
+      }
+    }, 1000); // 1 second delay for tracking (vs 300ms for search)
 
-  // Debug logs
-  console.log('Search Query:', searchQuery);
-  console.log('Movies:', movies);
-  console.log('Loading:', loading);
-  console.log('Error:', error);
+    return () => clearTimeout(trackingTimeoutId);
+  }, [movies, searchQuery]);
 
   return (
     <View className="flex-1 bg-primary">
