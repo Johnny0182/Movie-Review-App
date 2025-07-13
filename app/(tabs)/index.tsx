@@ -4,7 +4,7 @@ import TrendingCard from "@/components/TrendingCard";
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
 import { fetchMovies } from "@/services/api";
-import { getTrendingMovies } from "@/services/appwrite";
+import { getTrendingMoviesFromMetrics } from "@/services/appwrite";
 import useFetch from "@/services/useFetch";
 import { useRouter } from "expo-router";
 import React, { useState } from 'react';
@@ -21,11 +21,12 @@ export default function Index() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Changed to use the new function that pulls from metrics collection
   const {
     data: trendingMovies,
     loading: trendingLoading,
     error: trendingError
-  } = useFetch(getTrendingMovies, true);
+  } = useFetch(getTrendingMoviesFromMetrics, true);
   
   const {
     data: movies,
@@ -50,7 +51,7 @@ export default function Index() {
             className="mt-10 self-center"
           />
         ) : moviesError || trendingError ? (
-          <Text>Error: {moviesError?.message || trendingError?.message}</Text>
+          <Text className="text-white">Error: {moviesError?.message || trendingError?.message}</Text>
         ) : (
           <View className="flex-1 mt-5">
             <SearchBar
