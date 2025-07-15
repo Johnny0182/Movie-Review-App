@@ -153,7 +153,7 @@ export const getTrendingMoviesFromMetrics = async (): Promise<TrendingMovie[] | 
 
     console.log('Unique trending after deduplication:', uniqueTrending.size);
 
-    // Convert map to array, sort by count, and limit to 10
+    // Convert map to array, sort by count, and limit to 21 for search page limit to 10 on index for home page
     const trendingMovies = Array.from(uniqueTrending.values())
       .map(item => ({
         movie_id: item.movie_id,
@@ -162,7 +162,7 @@ export const getTrendingMoviesFromMetrics = async (): Promise<TrendingMovie[] | 
         search_count: item.search_count
       }))
       .sort((a, b) => b.search_count - a.search_count)
-      .slice(0, 10);
+      .slice(0, 21);
 
     console.log('Final trending movies:', trendingMovies.map(m => `${m.title} (${m.search_count})`));
 

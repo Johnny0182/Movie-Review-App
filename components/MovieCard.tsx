@@ -15,6 +15,15 @@ const MovieCard = ({ id, poster_path, title, vote_average, release_date, origina
             day: 'numeric'
         });
     };
+
+    // Helper function to capitalize titles
+    const capitalizeTitle = (title: string) => {
+        return title
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    };
+
 // Change movie card format
   return (
     <Link
@@ -29,18 +38,19 @@ const MovieCard = ({ id, poster_path, title, vote_average, release_date, origina
                 className="w-full h-48 rounded-lg"
                 resizeMode="cover"
             />
-            <Text className="text-sm font-bold text-white mt-2" numberOfLines={1}>{title}</Text>
+            <Text className="text-sm font-bold text-white mt-2" numberOfLines={1}>
+                {capitalizeTitle(title)}
+            </Text>
 
             <View className="flex-row items-center justify-start gap-x-1">
-                <Image source={icons.star} className="size-4"
-    />
-            <Text className="text-xs text-white font-bold uppercase">{Math.round(vote_average / 2)}</Text>
+                <Image source={icons.star} className="size-4" />
+                <Text className="text-xs text-white font-bold uppercase">{Math.round(vote_average / 2)}</Text>
             </View>
             
             <View className="flex-row items-center justify-between">
-                    <Text className="text-xs text-light-300 font-medium mt-1">
-                        {formatDate(release_date)} {original_language && `(${original_language.toUpperCase()})`}
-                    </Text>
+                <Text className="text-xs text-light-300 font-medium mt-1">
+                    {formatDate(release_date)} {original_language && `(${original_language.toUpperCase()})`}
+                </Text>
             </View>
 
         </TouchableOpacity>
