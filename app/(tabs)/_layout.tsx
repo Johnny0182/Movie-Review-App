@@ -1,28 +1,19 @@
 import { icons } from "@/constants/icons";
-import { images } from "@/constants/images";
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Image, ImageBackground, Text, View } from 'react-native';
+import { Image, View } from 'react-native';
 
-const TabIcon = ({ focused, icon, title}: any) => {
-    if (focused) {
-        return (
-            <View className="flex-1 justify-center items-center mt-4">
-                <ImageBackground
-                    source={images.highlight}
-                    className="flex flex-row justify-center items-center rounded-full overflow-hidden px-4"
-                    style={{ width: 110, height: 40 }} // Fixed width AND height
-                >
-                    <Image source={icon} tintColor="#151312" className="size-5" />
-                    <Text className="text-secondary text-base font-semibold ml-2" numberOfLines={1}>{title}</Text>
-                </ImageBackground>
-            </View>
-        )
-    }
-    
+const TabIcon = ({ focused, icon, title }: any) => {
     return (
-        <View className="size-full justify-center items-center mt-4 rounded-full">
-            <Image source={icon} tintColor="#A8B5DB" className="size-5" />
+        <View className="flex-1 justify-center items-center mt-4">
+            <Image 
+                source={icon} 
+                tintColor={focused ? "#ab8bff" : "#A8B5DB"} 
+                className="size-5" 
+            />
+            {focused && (
+                <View className="w-2 h-2 bg-accent rounded-full mt-2" />
+            )}
         </View>
     )
 }
@@ -48,7 +39,6 @@ const _layout = () => {
                 overflow: 'hidden',
                 borderWidth: 1,
                 borderColor: '#0f0d23',
-
             }
         }}>
         <Tabs.Screen
