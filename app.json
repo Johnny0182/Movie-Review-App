@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "La Critica",
-    "slug": "LA_CRITICA_OFFICAL",
+    "name": "Movie Amigos",
+    "slug": "Movie_Amigos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
