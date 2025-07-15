@@ -1,8 +1,12 @@
+// app/(tabs)/saved.tsx
+import AuthPrompt from '@/components/AuthPrompt';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
+import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   Text,
@@ -35,36 +39,38 @@ const mockSavedMovies = [
     vote_average: 9.3,
     release_date: "1994-09-23",
     original_language: "en"
-  },
-  {
-    id: 238,
-    title: "The Godfather",
-    poster_path: "/3bhkrj58Vtu7enYsRolD1fZdja1.jpg",
-    vote_average: 9.2,
-    release_date: "1972-03-14",
-    original_language: "en"
-  },
-  {
-    id: 680,
-    title: "Pulp Fiction",
-    poster_path: "/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg",
-    vote_average: 8.9,
-    release_date: "1994-09-10",
-    original_language: "en"
-  },
-  {
-    id: 155,
-    title: "The Dark Knight",
-    poster_path: "/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
-    vote_average: 9.0,
-    release_date: "2008-07-16",
-    original_language: "en"
   }
 ];
 
 const Saved = () => {
+  const { user, loading, isAuthenticated } = useAuth();
   const [savedMovies, setSavedMovies] = useState(mockSavedMovies);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Show loading spinner while checking auth state
+  if (loading) {
+    return (
+      <View className="flex-1 bg-primary justify-center items-center">
+        <Image source={images.bg} className="absolute w-full h-full z-0" />
+        <ActivityIndicator size="large" color="#ab8bff" />
+        <Text className="text-white mt-4">Loading...</Text>
+      </View>
+    );
+  }
+
+  // Show AuthPrompt if user is not signed in
+  if (!isAuthenticated) {
+    return (
+      <AuthPrompt 
+        title="Save Your Favorites"
+        message="Sign in to save movies, create watchlists, and get personalized recommendations"
+        onSuccess={() => {
+          // Optional: You could refetch saved movies here later
+          console.log('User signed in successfully!');
+        }}
+      />
+    );
+  }
 
   // Function to remove a movie from saved list
   const removeSavedMovie = (movieId: number) => {
