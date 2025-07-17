@@ -23,8 +23,8 @@ const AuthTester = () => {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="movies/[id]" />
-      <Stack.Screen name="auth/login" />
-      <Stack.Screen name="auth/signup" />
+      <Stack.Screen name="privacy-policy" />
+      <Stack.Screen name="terms" />
     </Stack>
   );
 };

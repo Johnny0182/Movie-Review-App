@@ -1,10 +1,7 @@
 // contexts/AuthContext.tsx
-import { Account, Client, ID } from 'appwrite';
-import * as WebBrowser from 'expo-web-browser';
+import { Account, Client, ID, OAuthProvider } from 'appwrite'; // Make sure to import OAuthProvider
+import * as Linking from 'expo-linking';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-
-// Configure WebBrowser for OAuth
-WebBrowser.maybeCompleteAuthSession();
 
 const client = new Client()
   .setEndpoint('https://nyc.cloud.appwrite.io/v1')
@@ -43,7 +40,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       const currentUser = await account.get();
       setUser(currentUser as User);
+      console.log('User authenticated:', currentUser.name);
     } catch (error) {
+      console.log('No authenticated user found');
       setUser(null);
     } finally {
       setLoading(false);
@@ -54,35 +53,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       
-      // Create the OAuth URL
-      const projectId = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
-      const redirectUrl = 'exp://192.168.1.135:8081';
+      // Create OAuth2 session with Appwrite
+      const redirectUri = Linking.createURL('/');
+      console.log('Redirect URI:', redirectUri);
       
-      console.log('Redirect URL:', redirectUrl);
-      
-      // Build the OAuth URL manually
-      const oauthUrl = `https://nyc.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=${projectId}&success=${encodeURIComponent(redirectUrl)}&failure=${encodeURIComponent(redirectUrl)}`;
-      
-      console.log('OAuth URL:', oauthUrl);
-      
-      // Open the OAuth session using WebBrowser
-      const result = await WebBrowser.openAuthSessionAsync(
-        oauthUrl,
-        redirectUrl
+      // Use Appwrite's account.createOAuth2Session for proper session handling
+      account.createOAuth2Session(
+        OAuthProvider.Google, // Try with capital G
+        redirectUri, // success URL
+        redirectUri  // failure URL
       );
-      
-      console.log('OAuth result:', result);
-      
-      if (result.type === 'success') {
-        // Check auth state after successful OAuth
-        await checkAuthState();
-      } else if (result.type === 'cancel') {
-        setLoading(false);
-        throw new Error('OAuth was cancelled by user');
-      } else {
-        setLoading(false);
-        throw new Error('OAuth failed');
-      }
       
     } catch (error) {
       console.error('Google sign-in error:', error);
@@ -124,6 +104,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw error;
     }
   };
+
+  // Handle deep links from OAuth redirect
+  useEffect(() => {
+    const handleDeepLink = (url: string) => {
+      console.log('Received deep link:', url);
+      // After OAuth redirect, check auth state
+      if (url.includes('success') || url.includes('failure')) {
+        setTimeout(() => {
+          checkAuthState();
+        }, 1000); // Give Appwrite time to create the session
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleDeepLink(url);
+    });
+
+    // Check for initial URL when app launches
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink(url);
+      }
+    });
+
+    return () => subscription?.remove();
+  }, []);
 
   useEffect(() => {
     checkAuthState();
