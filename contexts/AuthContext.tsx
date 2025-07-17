@@ -1,10 +1,7 @@
 // contexts/AuthContext.tsx
 import { Account, Client, ID } from 'appwrite';
-import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-
-// Configure WebBrowser for OAuth
-WebBrowser.maybeCompleteAuthSession();
 
 const client = new Client()
   .setEndpoint('https://nyc.cloud.appwrite.io/v1')
@@ -54,34 +51,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       
-      // Create the OAuth URL
+      // Create redirect URI for Expo
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: 'exp',
+        path: '/',
+      });
+      
+      console.log('Redirect URI:', redirectUri);
+      
+      // Build OAuth URL for Appwrite
       const projectId = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
-      const redirectUrl = 'exp://192.168.1.135:8081';
+      const authUrl = `https://nyc.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=${projectId}&success=${encodeURIComponent(redirectUri)}&failure=${encodeURIComponent(redirectUri)}`;
       
-      console.log('Redirect URL:', redirectUrl);
+      console.log('Auth URL:', authUrl);
       
-      // Build the OAuth URL manually
-      const oauthUrl = `https://nyc.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=${projectId}&success=${encodeURIComponent(redirectUrl)}&failure=${encodeURIComponent(redirectUrl)}`;
+      // Use Expo AuthSession
+      const result = await AuthSession.startAsync({
+        authUrl,
+        returnUrl: redirectUri,
+      });
       
-      console.log('OAuth URL:', oauthUrl);
-      
-      // Open the OAuth session using WebBrowser
-      const result = await WebBrowser.openAuthSessionAsync(
-        oauthUrl,
-        redirectUrl
-      );
-      
-      console.log('OAuth result:', result);
+      console.log('Auth result:', result);
       
       if (result.type === 'success') {
-        // Check auth state after successful OAuth
+        // Wait for session to be created
+        await new Promise(resolve => setTimeout(resolve, 1000));
         await checkAuthState();
-      } else if (result.type === 'cancel') {
-        setLoading(false);
-        throw new Error('OAuth was cancelled by user');
       } else {
         setLoading(false);
-        throw new Error('OAuth failed');
+        throw new Error('OAuth authentication failed');
       }
       
     } catch (error) {
