@@ -2,7 +2,6 @@
 import { Account, Client, ID } from 'appwrite';
 import * as AuthSession from 'expo-auth-session';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 
 const client = new Client()
   .setEndpoint('https://nyc.cloud.appwrite.io/v1')
@@ -54,11 +53,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       
-      if (Platform.OS === 'web') {
-        // For web, use Appwrite's built-in OAuth redirect
+      // Check if we're on web
+      if (typeof window !== 'undefined') {
+        // Web OAuth flow - direct redirect
         const projectId = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
-        const successUrl = window.location.origin + '/(tabs)'; // Redirect to tabs after success
-        const failureUrl = window.location.origin; // Stay on current page if failed
+        const successUrl = window.location.origin + '/(tabs)';
+        const failureUrl = window.location.origin;
         
         const authUrl = `https://nyc.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=${projectId}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}`;
         
@@ -67,24 +67,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      // Mobile flow (for later when you test on device)
+      // Mobile flow - simplified approach
       const redirectUri = AuthSession.makeRedirectUri({
-        scheme: 'movies', // Use your app scheme from app.json
+        scheme: 'movies',
       });
+      
+      console.log('Mobile redirect URI:', redirectUri);
       
       const authUrl = `https://nyc.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=${process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID}&success=${encodeURIComponent(redirectUri)}&failure=${encodeURIComponent(redirectUri)}`;
       
-      const result = await AuthSession.startAsync({
-        authUrl,
-        returnUrl: redirectUri,
-      });
-      
-      if (result.type === 'success') {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await checkAuthState();
+      // For mobile, we'll use WebBrowser directly (simpler approach)
+      if (typeof AuthSession.startAsync === 'function') {
+        const result = await AuthSession.startAsync({
+          authUrl: authUrl,
+          returnUrl: redirectUri,
+        });
+        
+        console.log('Auth result:', result);
+        
+        if (result.type === 'success') {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          await checkAuthState();
+        } else {
+          setLoading(false);
+          throw new Error('OAuth authentication was cancelled or failed');
+        }
       } else {
-        setLoading(false);
-        throw new Error('OAuth authentication was cancelled or failed');
+        // Fallback - just redirect on mobile too
+        console.log('Using fallback redirect approach');
+        window.location.href = authUrl;
       }
       
     } catch (error) {

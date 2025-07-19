@@ -1,40 +1,25 @@
-// app/(tabs)/profile.tsx
 import AuthPrompt from '@/components/AuthPrompt';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
 import { useAuth } from '@/contexts/AuthContext';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
 
 const Profile = () => {
   const { user, loading, isAuthenticated, signOut } = useAuth();
   const [signOutLoading, setSignOutLoading] = useState(false);
 
   const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setSignOutLoading(true);
-              await signOut();
-              // Don't show success alert since user state is already cleared
-              console.log('Successfully signed out');
-            } catch (error) {
-              console.error('Sign out error:', error);
-              // Don't show error alert since user state should be cleared anyway
-            } finally {
-              setSignOutLoading(false);
-            }
-          }
-        }
-      ]
-    );
+    console.log('handleSignOut called!');
+    try {
+      setSignOutLoading(true);
+      await signOut();
+      console.log('Successfully signed out');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      setSignOutLoading(false);
+    }
   };
 
   // Show loading spinner while checking auth state
@@ -70,17 +55,27 @@ const Profile = () => {
         {/* Header */}
         <View className="flex-row items-center justify-between mt-16 mb-8">
           <Text className="text-white text-2xl font-bold">Profile</Text>
-          <TouchableOpacity
-            onPress={handleSignOut}
-            disabled={signOutLoading}
-            className={`bg-red-500 px-4 py-2 rounded-lg ${signOutLoading ? 'opacity-50' : ''}`}
-          >
-            {signOutLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text className="text-white font-semibold">Sign Out</Text>
-            )}
-          </TouchableOpacity>
+          <View className="flex-row">
+            <TouchableOpacity
+              onPress={handleSignOut}
+              disabled={signOutLoading}
+              className={`bg-red-500 px-4 py-2 rounded-lg ${signOutLoading ? 'opacity-50' : ''}`}
+            >
+              {signOutLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text className="text-white font-semibold">Sign Out</Text>
+              )}
+            </TouchableOpacity>
+            
+            {/* Test Button */}
+            <TouchableOpacity
+              onPress={() => console.log('Test button clicked!')}
+              className="bg-blue-500 px-4 py-2 rounded-lg ml-2"
+            >
+              <Text className="text-white font-semibold">Test</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* User Info Card */}
