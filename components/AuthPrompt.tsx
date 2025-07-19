@@ -5,12 +5,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface AuthPromptProps {
@@ -73,7 +73,7 @@ const AuthPrompt = ({
             <TouchableOpacity
               onPress={handleGoogleSignIn}
               disabled={loading}
-              className={`w-full bg-white rounded-full py-4 px-6 flex-row items-center justify-center mb-4 ${
+              className={`w-full bg-white rounded-full py-4 px-6 flex-row items-center justify-center mb-6 ${
                 loading ? 'opacity-70' : ''
               }`}
               activeOpacity={0.8}
@@ -92,39 +92,19 @@ const AuthPrompt = ({
             </TouchableOpacity>
           )}
 
-          {/* Divider */}
-          <View className="flex-row items-center mb-4">
-            <View className="flex-1 h-px bg-gray-600" />
-            <Text className="text-gray-400 text-sm mx-4">or</Text>
-            <View className="flex-1 h-px bg-gray-600" />
+          {/* Coming Soon Message */}
+          <View className="bg-dark-200/30 rounded-xl p-4 mb-6">
+            <Text className="text-gray-400 text-center text-sm">
+              📧 Email sign-up coming soon!
+            </Text>
+            <Text className="text-gray-500 text-center text-xs mt-1">
+              For now, use Google to sign in quickly and securely
+            </Text>
           </View>
-
-          {/* Email Sign Up Button */}
-          <TouchableOpacity
-            className="w-full bg-accent rounded-full py-4 px-6 flex-row items-center justify-center mb-3"
-            activeOpacity={0.8}
-            onPress={() => Alert.alert('Coming Soon', 'Email sign-up will be available soon!')}
-          >
-            <Image source={icons.person} className="w-5 h-5 mr-3" tintColor="#fff" />
-            <Text className="text-white font-semibold text-base">
-              Sign up with Email
-            </Text>
-          </TouchableOpacity>
-
-          {/* Login Link */}
-          <TouchableOpacity
-            className="w-full py-3 items-center"
-            activeOpacity={0.8}
-            onPress={() => Alert.alert('Coming Soon', 'Email login will be available soon!')}
-          >
-            <Text className="text-gray-400 text-base">
-              Already have an account? <Text className="text-accent font-semibold">Sign in</Text>
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* Terms */}
-        <View className="mt-8 max-w-xs">
+        <View className="mt-4 max-w-xs">
           <Text className="text-gray-500 text-xs text-center leading-4">
             By continuing, you agree to our{' '}
             <Text 

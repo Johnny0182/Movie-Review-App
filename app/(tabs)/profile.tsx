@@ -1,11 +1,14 @@
+// app/(tabs)/profile.tsx
+import AuthPrompt from '@/components/AuthPrompt';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
 import { useAuth } from '@/contexts/AuthContext';
-import React from 'react';
-import { Alert, Image, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Image, Text, TouchableOpacity, View } from 'react-native';
 
 const Profile = () => {
-  const { user, isAuthenticated, signOut, loading } = useAuth();
+  const { user, loading, isAuthenticated, signOut } = useAuth();
+  const [signOutLoading, setSignOutLoading] = useState(false);
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -18,12 +21,15 @@ const Profile = () => {
           style: 'destructive',
           onPress: async () => {
             try {
+              setSignOutLoading(true);
               await signOut();
-              // Don't show success alert - the UI will update automatically
-              console.log('User signed out successfully');
+              // Don't show success alert since user state is already cleared
+              console.log('Successfully signed out');
             } catch (error) {
               console.error('Sign out error:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
+              // Don't show error alert since user state should be cleared anyway
+            } finally {
+              setSignOutLoading(false);
             }
           }
         }
@@ -31,69 +37,107 @@ const Profile = () => {
     );
   };
 
+  // Show loading spinner while checking auth state
   if (loading) {
     return (
-      <View className="bg-primary flex-1 justify-center items-center">
+      <View className="flex-1 bg-primary justify-center items-center">
         <Image source={images.bg} className="absolute w-full h-full z-0" />
-        <Text className="text-white">Loading...</Text>
+        <ActivityIndicator size="large" color="#ab8bff" />
+        <Text className="text-white mt-4">Loading...</Text>
       </View>
     );
   }
 
+  // Show AuthPrompt if user is not signed in
+  if (!isAuthenticated) {
+    return (
+      <AuthPrompt 
+        title="Your Movie Profile"
+        message="Sign in to save movies, track your favorites, and connect with other movie lovers"
+        onSuccess={() => {
+          console.log('User signed in from profile page!');
+        }}
+      />
+    );
+  }
+
+  // User is signed in - show profile
   return (
     <View className="bg-primary flex-1">
       <Image source={images.bg} className="absolute w-full h-full z-0" />
       
-      {isAuthenticated && user ? (
-        // User is signed in - show profile info
-        <View className="flex-1 px-6 pt-20">
-          {/* Header */}
-          <View className="items-center mb-8">
-            <View className="w-20 h-20 bg-accent rounded-full items-center justify-center mb-4">
-              <Image source={icons.person} className="w-10 h-10" tintColor="#fff" />
-            </View>
-            <Text className="text-white text-2xl font-bold">{user.name}</Text>
-            <Text className="text-gray-400 text-base">{user.email}</Text>
-          </View>
-
-          {/* Profile Stats/Info */}
-          <View className="bg-dark-200/50 rounded-xl p-6 mb-6">
-            <Text className="text-white text-lg font-bold mb-4">Account Info</Text>
-            
-            <View className="flex-row justify-between items-center py-3 border-b border-gray-600">
-              <Text className="text-gray-400">User ID</Text>
-              <Text className="text-white text-xs">{user.$id.slice(0, 8)}...</Text>
-            </View>
-            
-            <View className="flex-row justify-between items-center py-3">
-              <Text className="text-gray-400">Account Type</Text>
-              <Text className="text-green-400">Google Account</Text>
-            </View>
-          </View>
-
-          {/* Sign Out Button */}
+      <View className="flex-1 px-6">
+        {/* Header */}
+        <View className="flex-row items-center justify-between mt-16 mb-8">
+          <Text className="text-white text-2xl font-bold">Profile</Text>
           <TouchableOpacity
             onPress={handleSignOut}
-            className="bg-red-500 rounded-xl py-4 px-6 items-center"
-            activeOpacity={0.8}
+            disabled={signOutLoading}
+            className={`bg-red-500 px-4 py-2 rounded-lg ${signOutLoading ? 'opacity-50' : ''}`}
           >
-            <Text className="text-white font-semibold text-base">Sign Out</Text>
+            {signOutLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text className="text-white font-semibold">Sign Out</Text>
+            )}
           </TouchableOpacity>
+        </View>
 
-          {/* App Info */}
-          <View className="mt-8 items-center">
-            <Text className="text-gray-500 text-sm">Movie Amigos v1.0.0</Text>
+        {/* User Info Card */}
+        <View className="bg-dark-200/50 rounded-xl p-6 mb-6">
+          <View className="flex-row items-center mb-4">
+            <View className="w-16 h-16 bg-accent rounded-full items-center justify-center mr-4">
+              <Text className="text-white text-xl font-bold">
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-white text-lg font-bold">{user?.name || 'User'}</Text>
+              <Text className="text-gray-400 text-sm">{user?.email || 'No email'}</Text>
+            </View>
+          </View>
+          
+          <View className="border-t border-gray-600 pt-4">
+            <Text className="text-gray-400 text-xs">Account ID</Text>
+            <Text className="text-gray-300 text-sm font-mono">{user?.$id}</Text>
           </View>
         </View>
-      ) : (
-        // User is not signed in - show basic profile placeholder
-        <View className="flex justify-center items-center flex-1 flex-col gap-5 px-10">
-          <Image source={icons.person} className="size-10" tintColor="#fff" />
-          <Text className="text-gray-500 text-base text-center">
-            Sign in to see your profile and saved movies
-          </Text>
+
+        {/* Profile Options */}
+        <View className="bg-dark-200/50 rounded-xl p-6 mb-6">
+          <Text className="text-white text-lg font-bold mb-4">Coming Soon</Text>
+          
+          <View className="space-y-4">
+            <View className="flex-row items-center py-3 border-b border-gray-600">
+              <Image source={icons.person} className="w-5 h-5 mr-3" tintColor="#ab8bff" />
+              <Text className="text-gray-400">Edit Profile</Text>
+            </View>
+            
+            <View className="flex-row items-center py-3 border-b border-gray-600">
+              <Image source={icons.star} className="w-5 h-5 mr-3" tintColor="#ab8bff" />
+              <Text className="text-gray-400">My Reviews</Text>
+            </View>
+            
+            <View className="flex-row items-center py-3 border-b border-gray-600">
+              <Image source={icons.person} className="w-5 h-5 mr-3" tintColor="#ab8bff" />
+              <Text className="text-gray-400">Friends</Text>
+            </View>
+            
+            <View className="flex-row items-center py-3">
+              <Image source={icons.save} className="w-5 h-5 mr-3" tintColor="#ab8bff" />
+              <Text className="text-gray-400">Settings</Text>
+            </View>
+          </View>
         </View>
-      )}
+
+        {/* Debug Info (remove in production) */}
+        <View className="bg-gray-800/50 rounded-xl p-4">
+          <Text className="text-gray-400 text-xs mb-2">Debug Info:</Text>
+          <Text className="text-gray-500 text-xs">Loading: {loading.toString()}</Text>
+          <Text className="text-gray-500 text-xs">Authenticated: {isAuthenticated.toString()}</Text>
+          <Text className="text-gray-500 text-xs">User exists: {(user !== null).toString()}</Text>
+        </View>
+      </View>
     </View>
   );
 };

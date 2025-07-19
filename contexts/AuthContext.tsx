@@ -40,11 +40,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       const currentUser = await account.get();
+      console.log('Current user found:', currentUser.name);
       setUser(currentUser as User);
-      console.log('✅ User authenticated:', currentUser.name);
     } catch (error) {
+      console.log('No authenticated user found');
       setUser(null);
-      console.log('❌ No active session');
     } finally {
       setLoading(false);
     }
@@ -55,42 +55,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       
       if (Platform.OS === 'web') {
-        // For web, use Appwrite's built-in OAuth
+        // For web, use Appwrite's built-in OAuth redirect
         const projectId = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
-        const successUrl = window.location.origin + '/';
-        const failureUrl = window.location.origin + '/';
+        const successUrl = window.location.origin + '/(tabs)'; // Redirect to tabs after success
+        const failureUrl = window.location.origin; // Stay on current page if failed
         
-        console.log('🌐 Redirecting to Google OAuth (web)...');
+        const authUrl = `https://nyc.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=${projectId}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}`;
         
-        // Redirect to Appwrite OAuth
-        window.location.href = `https://nyc.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=${projectId}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}`;
-        
+        console.log('Starting web OAuth flow to:', authUrl);
+        window.location.href = authUrl;
+        return;
+      }
+      
+      // Mobile flow (for later when you test on device)
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: 'movies', // Use your app scheme from app.json
+      });
+      
+      const authUrl = `https://nyc.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=${process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID}&success=${encodeURIComponent(redirectUri)}&failure=${encodeURIComponent(redirectUri)}`;
+      
+      const result = await AuthSession.startAsync({
+        authUrl,
+        returnUrl: redirectUri,
+      });
+      
+      if (result.type === 'success') {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await checkAuthState();
       } else {
-        // For mobile, use Expo AuthSession
-        console.log('📱 Starting mobile OAuth...');
-        
-        const redirectUri = AuthSession.makeRedirectUri({
-          scheme: 'exp',
-          path: '/',
-        });
-        
-        const projectId = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
-        const authUrl = `https://nyc.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=${projectId}&success=${encodeURIComponent(redirectUri)}&failure=${encodeURIComponent(redirectUri)}`;
-        
-        const result = await AuthSession.startAsync({
-          authUrl,
-          returnUrl: redirectUri,
-        });
-        
-        console.log('Auth result:', result);
-        
-        if (result.type === 'success') {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          await checkAuthState();
-        } else {
-          setLoading(false);
-          throw new Error('OAuth authentication failed');
-        }
+        setLoading(false);
+        throw new Error('OAuth authentication was cancelled or failed');
       }
       
     } catch (error) {
@@ -126,51 +120,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      console.log('🔓 Attempting to sign out...');
       setLoading(true);
+      console.log('Attempting to sign out...');
       
-      // Delete the current session
+      // For OAuth sessions, use deleteSession('current') instead of deleteSessions()
       await account.deleteSession('current');
+      console.log('Current session deleted successfully');
       
-      // Clear user state
+      // Clear user state after successful session deletion
       setUser(null);
-      
-      console.log('✅ Successfully signed out');
-      
-      // On web, optionally redirect to home or login
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        // Clear any cached data
-        window.localStorage.clear();
-        window.sessionStorage.clear();
-      }
+      console.log('User state cleared');
       
     } catch (error) {
-      console.error('❌ Sign out error:', error);
-      // Even if there's an error, clear the user state
+      console.error('Sign out error:', error);
+      // Even if session deletion fails, clear the user state locally
       setUser(null);
-      throw error;
+      console.log('User state cleared despite session deletion error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Check for OAuth callback on web
   useEffect(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      // Check if we're returning from OAuth
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('userId') || window.location.search.includes('success')) {
-        console.log('🔄 OAuth callback detected, checking auth state...');
-        // OAuth success, check auth state
-        checkAuthState();
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } else {
-        checkAuthState();
-      }
-    } else {
-      checkAuthState();
-    }
+    checkAuthState();
   }, []);
 
   const value = {
