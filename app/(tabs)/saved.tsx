@@ -3,10 +3,13 @@ import AuthPrompt from '@/components/AuthPrompt';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
 import { useAuth } from '@/contexts/AuthContext';
+import { getUserSavedMovies, unsaveMovie } from '@/services/savedMovies';
+import useFetch from '@/services/useFetch';
 import { Link } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Text,
@@ -14,38 +17,36 @@ import {
   View
 } from 'react-native';
 
-// Mock saved movies data for now - will be replaced with real data from Appwrite
-const mockSavedMovies = [
-  {
-    id: 550,
-    title: "Fight Club",
-    poster_path: "/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
-    vote_average: 8.4,
-    release_date: "1999-10-15",
-    original_language: "en"
-  },
-  {
-    id: 13,
-    title: "Forrest Gump", 
-    poster_path: "/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg",
-    vote_average: 8.5,
-    release_date: "1994-06-23",
-    original_language: "en"
-  },
-  {
-    id: 278,
-    title: "The Shawshank Redemption",
-    poster_path: "/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg", 
-    vote_average: 9.3,
-    release_date: "1994-09-23",
-    original_language: "en"
-  }
-];
-
 const Saved = () => {
   const { user, loading, isAuthenticated } = useAuth();
-  const [savedMovies, setSavedMovies] = useState(mockSavedMovies);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch saved movies from Appwrite
+  const {
+    data: savedMovies,
+    loading: moviesLoading,
+    error: moviesError,
+    refetch: refetchSavedMovies
+  } = useFetch(
+    () => user ? getUserSavedMovies(user.$id) : Promise.resolve([]),
+    false // Don't auto-fetch until user is available
+  );
+
+  // Fetch saved movies when user changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      refetchSavedMovies();
+    }
+  }, [isAuthenticated, user]);
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    if (!user) return;
+    setRefreshing(true);
+    await refetchSavedMovies();
+    setRefreshing(false);
+  };
 
   // Show loading spinner while checking auth state
   if (loading) {
@@ -65,7 +66,6 @@ const Saved = () => {
         title="Save Your Favorites"
         message="Sign in to save movies, create watchlists, and get personalized recommendations"
         onSuccess={() => {
-          // Optional: You could refetch saved movies here later
           console.log('User signed in successfully!');
         }}
       />
@@ -73,8 +73,18 @@ const Saved = () => {
   }
 
   // Function to remove a movie from saved list
-  const removeSavedMovie = (movieId: number) => {
-    setSavedMovies(prev => prev.filter(movie => movie.id !== movieId));
+  const removeSavedMovie = async (movieId: number) => {
+    if (!user) return;
+    
+    try {
+      await unsaveMovie(user.$id, movieId);
+      // Refresh the list after removing
+      await refetchSavedMovies();
+      Alert.alert('Removed!', 'Movie has been removed from your saved list');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to remove movie. Please try again.');
+      console.error('Error removing saved movie:', error);
+    }
   };
 
   // Toggle edit mode
@@ -98,8 +108,32 @@ const Saved = () => {
     </View>
   );
 
+  const LoadingState = () => (
+    <View className="flex-1 justify-center items-center">
+      <ActivityIndicator size="large" color="#ab8bff" />
+      <Text className="text-white mt-4">Loading your saved movies...</Text>
+    </View>
+  );
+
+  const ErrorState = () => (
+    <View className="flex-1 justify-center items-center px-10">
+      <Text className="text-red-400 text-lg font-semibold mb-2">
+        Error Loading Movies
+      </Text>
+      <Text className="text-gray-500 text-center text-sm leading-5 mb-4">
+        {moviesError?.message || 'Something went wrong'}
+      </Text>
+      <TouchableOpacity
+        onPress={refetchSavedMovies}
+        className="bg-accent px-6 py-3 rounded-lg"
+      >
+        <Text className="text-white font-semibold">Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   // Custom movie card for saved page - clean and modern
-  const SavedMovieCard = ({ item }: { item: any }) => {
+  const SavedMovieCard = ({ item }: { item: Movie }) => {
     const capitalizeTitle = (title: string) => {
       return title
         .split(' ')
@@ -109,7 +143,18 @@ const Saved = () => {
 
     const handleDeletePress = (e: any) => {
       e.stopPropagation();
-      removeSavedMovie(item.id);
+      Alert.alert(
+        'Remove Movie',
+        `Are you sure you want to remove "${item.title}" from your saved movies?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Remove', 
+            style: 'destructive',
+            onPress: () => removeSavedMovie(item.id)
+          }
+        ]
+      );
     };
 
     return (
@@ -193,11 +238,11 @@ const Saved = () => {
         <View className="flex-row items-center">
           <Image source={icons.save} className="w-6 h-6 mr-2" tintColor="#ab8bff" />
           <Text className="text-white text-xl font-bold">
-            Saved Movies ({savedMovies.length})
+            Saved Movies ({savedMovies?.length || 0})
           </Text>
         </View>
         
-        {savedMovies.length > 0 && (
+        {savedMovies && savedMovies.length > 0 && (
           <TouchableOpacity 
             onPress={toggleEditMode}
             className={`px-4 py-2 rounded-lg ${isEditMode ? 'bg-red-500' : 'bg-accent'}`}
@@ -210,7 +255,7 @@ const Saved = () => {
       </View>
 
       {/* Edit Mode Instructions */}
-      {isEditMode && savedMovies.length > 0 && (
+      {isEditMode && savedMovies && savedMovies.length > 0 && (
         <View className="mx-5 mb-4 bg-red-500/20 border border-red-500 rounded-lg p-3">
           <Text className="text-red-400 text-sm text-center">
             Tap the × on any movie to remove it from your saved list
@@ -219,7 +264,11 @@ const Saved = () => {
       )}
 
       {/* Content */}
-      {savedMovies.length === 0 ? (
+      {moviesLoading ? (
+        <LoadingState />
+      ) : moviesError ? (
+        <ErrorState />
+      ) : !savedMovies || savedMovies.length === 0 ? (
         <EmptyState />
       ) : (
         <FlatList
@@ -227,7 +276,8 @@ const Saved = () => {
           renderItem={({ item }) => <SavedMovieCard item={item} />}
           keyExtractor={(item) => item.id.toString()}
           numColumns={3}
-          key={savedMovies.length} // Force re-render when items are deleted
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
           columnWrapperStyle={{
             justifyContent: 'flex-start',
             paddingHorizontal: 20,
