@@ -1,3 +1,4 @@
+// app/(tabs)/profile.tsx
 import AuthPrompt from '@/components/AuthPrompt';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
@@ -55,40 +56,44 @@ const Profile = () => {
         {/* Header */}
         <View className="flex-row items-center justify-between mt-16 mb-8">
           <Text className="text-white text-2xl font-bold">Profile</Text>
-          <View className="flex-row">
-            <TouchableOpacity
-              onPress={handleSignOut}
-              disabled={signOutLoading}
-              className={`bg-red-500 px-4 py-2 rounded-lg ${signOutLoading ? 'opacity-50' : ''}`}
-            >
-              {signOutLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text className="text-white font-semibold">Sign Out</Text>
-              )}
-            </TouchableOpacity>
-            
-            {/* Test Button */}
-            <TouchableOpacity
-              onPress={() => console.log('Test button clicked!')}
-              className="bg-blue-500 px-4 py-2 rounded-lg ml-2"
-            >
-              <Text className="text-white font-semibold">Test</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={handleSignOut}
+            disabled={signOutLoading}
+            className={`bg-red-500 px-4 py-2 rounded-lg ${signOutLoading ? 'opacity-50' : ''}`}
+          >
+            {signOutLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text className="text-white font-semibold">Sign Out</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* User Info Card */}
         <View className="bg-dark-200/50 rounded-xl p-6 mb-6">
           <View className="flex-row items-center mb-4">
-            <View className="w-16 h-16 bg-accent rounded-full items-center justify-center mr-4">
-              <Text className="text-white text-xl font-bold">
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
-              </Text>
+            <View className="w-16 h-16 rounded-full mr-4 overflow-hidden bg-accent items-center justify-center">
+              {user?.prefs?.profilePicture || user?.email ? (
+                <Image
+                  source={{ 
+                    uri: user?.prefs?.profilePicture || 
+                         `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=ab8bff&color=ffffff&size=64`
+                  }}
+                  className="w-full h-full"
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text className="text-white text-xl font-bold">
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </Text>
+              )}
             </View>
             <View className="flex-1">
               <Text className="text-white text-lg font-bold">{user?.name || 'User'}</Text>
               <Text className="text-gray-400 text-sm">{user?.email || 'No email'}</Text>
+              <Text className="text-gray-500 text-xs mt-1">
+                {user?.prefs?.provider ? `Signed in with ${user.prefs.provider}` : 'Google Account'}
+              </Text>
             </View>
           </View>
           
