@@ -3,10 +3,10 @@ import AuthPrompt from '@/components/AuthPrompt';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserSavedMovies, unsaveMovie } from '@/services/savedMovies';
+import { getUserSavedMovies, toggleMovieSaved } from '@/services/savedMovies';
 import useFetch from '@/services/useFetch';
-import { Link } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Link, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -40,6 +40,15 @@ const Saved = () => {
     }
   }, [isAuthenticated, user]);
 
+  // Auto-refresh whenever the user navigates to this page (including from heart clicks)
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated && user) {
+        refetchSavedMovies();
+      }
+    }, [isAuthenticated, user])
+  );
+
   // Handle refresh
   const handleRefresh = async () => {
     if (!user) return;
@@ -72,15 +81,20 @@ const Saved = () => {
     );
   }
 
-  // Function to remove a movie from saved list
-  const removeSavedMovie = async (movieId: number) => {
+  // CONSOLIDATED REMOVE FUNCTION - uses the same toggleMovieSaved as the heart
+  const removeSavedMovie = async (movie: Movie) => {
     if (!user) return;
     
     try {
-      await unsaveMovie(user.$id, movieId);
-      // Refresh the list after removing
-      await refetchSavedMovies();
-      Alert.alert('Removed!', 'Movie has been removed from your saved list');
+      // Use the same function as the heart button for consistency
+      const newSavedState = await toggleMovieSaved(user.$id, movie);
+      
+      // Since we're removing, newSavedState should be false
+      if (!newSavedState) {
+        Alert.alert('Removed!', `${movie.title} has been removed from your saved list`);
+        // Refresh the list after removing
+        await refetchSavedMovies();
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to remove movie. Please try again.');
       console.error('Error removing saved movie:', error);
@@ -143,18 +157,28 @@ const Saved = () => {
 
     const handleDeletePress = (e: any) => {
       e.stopPropagation();
-      Alert.alert(
-        'Remove Movie',
-        `Are you sure you want to remove "${item.title}" from your saved movies?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Remove', 
-            style: 'destructive',
-            onPress: () => removeSavedMovie(item.id)
-          }
-        ]
-      );
+      
+      // For web development, use browser confirm
+      if (typeof window !== 'undefined') {
+        const confirmed = window.confirm(`Are you sure you want to remove "${item.title}" from your saved movies?`);
+        if (confirmed) {
+          removeSavedMovie(item);
+        }
+      } else {
+        // Mobile/native - use React Native Alert
+        Alert.alert(
+          'Remove Movie',
+          `Are you sure you want to remove "${item.title}" from your saved movies?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Remove', 
+              style: 'destructive',
+              onPress: () => removeSavedMovie(item)
+            }
+          ]
+        );
+      }
     };
 
     return (
