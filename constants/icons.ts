@@ -1,4 +1,5 @@
 import arrow from "@/assets/icons/arrow.png";
+import close from "@/assets/icons/close.png";
 import home from "@/assets/icons/home.png";
 import logo from "@/assets/icons/logo.png";
 import person from "@/assets/icons/person.png";
@@ -16,4 +17,5 @@ export const icons = {
   star,
   play,
   arrow,
+  close,
 };

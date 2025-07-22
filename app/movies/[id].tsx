@@ -1,3 +1,5 @@
+// app/movies/[id].tsx - Updated with Reviews Section
+import ReviewsSection from '@/components/ReviewsSection';
 import { icons } from '@/constants/icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchMovieDetails } from '@/services/api';
@@ -118,7 +120,7 @@ const MovieDetails = () => {
   return (
     <View className="bg-primary flex-1">
       <ScrollView contentContainerStyle={{
-        paddingBottom: 100 
+        paddingBottom: 120  // Increased padding for reviews section
       }}>
         
         {/* Hero poster section */}
@@ -225,6 +227,14 @@ const MovieDetails = () => {
           </View>
           
         </View>
+
+        {/* Reviews Section */}
+        {movie && (
+          <ReviewsSection 
+            movieId={movie.id} 
+            movieTitle={movie.title} 
+          />
+        )}
       </ScrollView>
 
       {/* Fixed back navigation button */}
