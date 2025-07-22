@@ -14,12 +14,139 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import StarRating from './StarRating';
 
 interface ReviewsSectionProps {
   movieId: number;
   movieTitle: string;
 }
+
+// Simple Rating Component with +/- buttons
+const RatingSlider = ({ 
+  rating, 
+  onRatingChange, 
+  readonly = false, 
+  size = 'medium' 
+}: { 
+  rating: number; 
+  onRatingChange?: (rating: number) => void; 
+  readonly?: boolean;
+  size?: 'small' | 'medium' | 'large';
+}) => {
+  const sizeConfig = {
+    small: { 
+      containerHeight: 'h-8', 
+      buttonSize: 'w-8 h-8', 
+      textSize: 'text-sm',
+      sliderHeight: 'h-1'
+    },
+    medium: { 
+      containerHeight: 'h-10', 
+      buttonSize: 'w-10 h-10', 
+      textSize: 'text-base',
+      sliderHeight: 'h-1.5'
+    },
+    large: { 
+      containerHeight: 'h-12', 
+      buttonSize: 'w-12 h-12', 
+      textSize: 'text-lg',
+      sliderHeight: 'h-2'
+    }
+  };
+
+  const config = sizeConfig[size];
+  const safeRating = isNaN(rating) ? 5 : Math.max(1, Math.min(10, rating));
+  const percentage = (safeRating / 10) * 100;
+
+  const [sliderWidth, setSliderWidth] = useState(0);
+
+  const handleDecrease = () => {
+    if (readonly || !onRatingChange) return;
+    const newRating = Math.max(1, safeRating - 1);
+    onRatingChange(newRating);
+  };
+
+  const handleIncrease = () => {
+    if (readonly || !onRatingChange) return;
+    const newRating = Math.min(10, safeRating + 1);
+    onRatingChange(newRating);
+  };
+
+  const handleSliderPress = (event: any) => {
+    if (readonly || !onRatingChange || sliderWidth === 0) return;
+    
+    const { locationX } = event.nativeEvent;
+    const newRating = Math.round((locationX / sliderWidth) * 10);
+    const clampedRating = Math.max(1, Math.min(10, newRating));
+    onRatingChange(clampedRating);
+  };
+
+  return (
+    <View className={`flex-row items-center gap-4 ${config.containerHeight}`}>
+      {/* Minus Button */}
+      {!readonly && onRatingChange && (
+        <TouchableOpacity
+          onPress={handleDecrease}
+          disabled={safeRating <= 1}
+          className={`${config.buttonSize} bg-dark-100 rounded-full items-center justify-center ${
+            safeRating <= 1 ? 'opacity-50' : ''
+          }`}
+          activeOpacity={0.7}
+        >
+          <Text className={`text-white font-bold ${config.textSize}`}>−</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Slider Track */}
+      <View className="flex-1 flex-row items-center gap-3">
+        <TouchableOpacity
+          onPress={handleSliderPress}
+          disabled={readonly}
+          className="flex-1 justify-center py-4"
+          activeOpacity={readonly ? 1 : 0.8}
+          onLayout={(event) => {
+            setSliderWidth(event.nativeEvent.layout.width);
+          }}
+        >
+          <View className={`w-full ${config.sliderHeight} bg-gray-600 rounded-full relative`}>
+            {/* Filled portion */}
+            <View 
+              className={`${config.sliderHeight} bg-accent rounded-full transition-all duration-200`}
+              style={{ width: `${percentage}%` }}
+            />
+            {/* Visual dots for scale */}
+            <View className="absolute inset-0 flex-row justify-between items-center px-1">
+              {Array.from({ length: 9 }, (_, i) => (
+                <View 
+                  key={i} 
+                  className="w-0.5 h-0.5 bg-gray-400 rounded-full opacity-50" 
+                />
+              ))}
+            </View>
+          </View>
+        </TouchableOpacity>
+        
+        {/* Rating Display */}
+        <Text className={`text-white font-semibold ${config.textSize} min-w-[45px]`}>
+          {safeRating}/10
+        </Text>
+      </View>
+
+      {/* Plus Button */}
+      {!readonly && onRatingChange && (
+        <TouchableOpacity
+          onPress={handleIncrease}
+          disabled={safeRating >= 10}
+          className={`${config.buttonSize} bg-dark-100 rounded-full items-center justify-center ${
+            safeRating >= 10 ? 'opacity-50' : ''
+          }`}
+          activeOpacity={0.7}
+        >
+          <Text className={`text-white font-bold ${config.textSize}`}>+</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 
 const ReviewsSection = ({ movieId, movieTitle }: ReviewsSectionProps) => {
   const { user, isAuthenticated } = useAuth();
@@ -118,14 +245,18 @@ const ReviewsSection = ({ movieId, movieTitle }: ReviewsSectionProps) => {
 
       if (!confirmed) return;
 
+      // Delete the review
       await deleteReview(reviewId, user.$id);
       
-      // Refresh data
-      await refetchReviews();
-      await checkUserReview();
+      // Force refresh both reviews list and user review status
+      await Promise.all([
+        refetchReviews(),
+        checkUserReview()
+      ]);
       
       Alert.alert('Deleted', 'Your review has been deleted.');
     } catch (error: any) {
+      console.error('Delete review error:', error);
       Alert.alert('Error', error.message || 'Failed to delete review.');
     }
   };
@@ -175,10 +306,10 @@ const ReviewsSection = ({ movieId, movieTitle }: ReviewsSectionProps) => {
         <View className="bg-dark-200/50 rounded-xl p-4 mb-6">
           <Text className="text-white text-lg font-semibold mb-3">Write Your Review</Text>
           
-          {/* Star Rating Input */}
+          {/* Rating Input */}
           <View className="mb-4">
-            <Text className="text-gray-400 text-sm mb-2">Rating</Text>
-            <StarRating
+            <Text className="text-gray-400 text-sm mb-3">Rating</Text>
+            <RatingSlider
               rating={userRating}
               onRatingChange={setUserRating}
               size="large"
@@ -290,7 +421,7 @@ const ReviewsSection = ({ movieId, movieTitle }: ReviewsSectionProps) => {
                     className="p-2"
                   >
                     <Image 
-                      source={icons.close}
+                      source={icons.close} 
                       className="w-5 h-5" 
                       tintColor="#ef4444" 
                     />
@@ -298,9 +429,9 @@ const ReviewsSection = ({ movieId, movieTitle }: ReviewsSectionProps) => {
                 )}
               </View>
 
-              {/* Star Rating */}
+              {/* Rating Display */}
               <View className="mb-3">
-                <StarRating
+                <RatingSlider
                   rating={review.rating}
                   size="small"
                   readonly={true}
